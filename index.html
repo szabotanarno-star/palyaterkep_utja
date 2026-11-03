@@ -1,0 +1,426 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>A Pályatérkép útja</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:opsz,wght@7..72,400;7..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: kétoszlopos „terepasztal” — balra a történet, jobbra az aktor–konténer térkép, ami a döntésekkel együtt telik meg. */
+:root{
+  --bg:#EBEFF2; --surface:#FFFFFF; --ink:#17202A; --muted:#55616E; --line:#B6C0CA;
+  --src:#B36F0C; --src-soft:#F6E7CC; --usr:#2A63A3; --usr-soft:#DCE8F5;
+  --good:#2C7A4C; --mid:#9A5A0A; --bad:#A3313A;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Literata", Georgia, "Times New Roman", serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151B; --surface:#19212A; --ink:#E2E7EC; --muted:#9BA7B3; --line:#3A4653;
+  --src:#E3A440; --src-soft:#3A2D16; --usr:#72A8E2; --usr-soft:#1C2F44;
+  --good:#5CBB84; --mid:#E2A458; --bad:#E3757D; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#10151B; --surface:#19212A; --ink:#E2E7EC; --muted:#9BA7B3; --line:#3A4653;
+  --src:#E3A440; --src-soft:#3A2D16; --usr:#72A8E2; --usr-soft:#1C2F44;
+  --good:#5CBB84; --mid:#E2A458; --bad:#E3757D; color-scheme:dark }
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1120px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:20px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4.4vw,42px);line-height:1.05;margin:4px 0 0;text-wrap:balance;letter-spacing:-.01em}
+h1 span{color:var(--src)}
+.ticks{display:flex;gap:6px;align-items:center}
+.tick{width:22px;height:8px;border-radius:2px;background:var(--line)}
+.tick.done{background:var(--usr)}
+.tick.now{outline:2px solid var(--usr);outline-offset:2px;background:var(--usr-soft)}
+.stage{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:start}
+.story{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:28px clamp(18px,3vw,36px) 30px;min-width:0}
+.mapbox{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 12px);min-width:0}
+@media (max-width:820px){.stage{grid-template-columns:minmax(0,1fr)}.mapbox{position:static;order:-1}}
+.kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--usr);margin:0 0 6px}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(22px,2.8vw,28px);line-height:1.15;margin:0 0 14px;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:500;font-size:19px;margin:26px 0 10px}
+.story p{margin:0 0 14px;max-width:62ch}
+.lead{font-size:17.5px}
+.opts{display:grid;gap:10px;margin-top:20px}
+.opt{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;align-items:start;text-align:left;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:14px 16px;cursor:pointer;transition:border-color .15s, background .15s}
+.opt:hover{border-color:var(--usr);background:var(--usr-soft)}
+.opt:focus-visible,.btn:focus-visible,summary:focus-visible{outline:3px solid var(--usr);outline-offset:2px}
+.opt .k{font-family:var(--f-mono);font-weight:500;font-size:14px;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--surface)}
+.picked{border-left:4px solid var(--line);padding:4px 0 4px 14px;margin:0 0 16px;color:var(--muted);font-style:italic;max-width:62ch}
+.verdict{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;padding:4px 10px;border-radius:3px;margin-bottom:12px;border:1px solid currentColor}
+.v2{color:var(--good)} .v1{color:var(--mid)} .v0{color:var(--bad)}
+.lit{margin-top:18px;padding:16px 18px;background:var(--usr-soft);border-radius:6px;max-width:66ch}
+.lit .eyebrow{color:var(--usr);margin-bottom:6px}
+.lit p{margin:0 0 8px;font-size:15px}
+.lit p:last-child{margin:0}
+.best{margin-top:14px;font-size:15px;color:var(--muted);max-width:62ch}
+.best b{color:var(--ink);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.btn{font-family:var(--f-display);font-weight:500;font-size:16px;padding:11px 20px;border-radius:4px;border:1px solid var(--ink);background:var(--ink);color:var(--surface);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:hover{opacity:.88}
+.map{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 14px 12px}
+.map svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.legend .dash{width:18px;height:0;border-radius:0;border-top:2px dashed var(--src);vertical-align:3px}
+.note{font-size:13px;color:var(--muted);margin:10px 2px 0;line-height:1.45}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.newdot{transform-box:fill-box;transform-origin:center;animation:pop .45s cubic-bezier(.3,1.6,.5,1) both}
+@media (prefers-reduced-motion: reduce){.newdot{animation:none}.opt{transition:none}}
+.how{display:grid;gap:8px;margin:18px 0 0;padding:0;list-style:none;max-width:62ch}
+.how li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;font-size:15px}
+.how li::before{content:"";width:10px;height:10px;margin-top:7px;border-radius:50%;background:var(--usr)}
+.how li:first-child::before{background:var(--src)}
+.tier{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,3.4vw,34px);line-height:1.1;margin:0 0 6px;color:var(--src)}
+.score{font-family:var(--f-mono);font-size:13px;color:var(--muted);margin-bottom:14px;font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}
+.tbl{overflow-x:auto}
+th,td{text-align:left;padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-weight:500;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;min-width:70px;margin-top:6px}
+.bar b{display:block;height:100%;background:var(--usr)}
+.lvl{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+.refl{margin:0;padding-left:22px;max-width:62ch}
+.refl li{margin-bottom:10px}
+details{margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font-family:var(--f-display);font-weight:500;font-size:17px}
+.rev{display:grid;gap:12px;margin-top:12px}
+.rev div{font-size:14.5px;max-width:66ch}
+.rev .t{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+.send{margin-top:28px;padding:20px clamp(16px,2.6vw,24px);background:var(--src-soft);border:1px solid var(--src);border-radius:6px}
+.send p{margin:0 0 14px;max-width:62ch}
+.field{display:grid;gap:6px;margin-bottom:14px}
+.field label{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input,.field textarea{font:inherit;font-size:15.5px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:10px 12px;width:100%;box-sizing:border-box}
+.field textarea{min-height:160px;resize:vertical;line-height:1.5}
+.field input:focus-visible,.field textarea:focus-visible{outline:3px solid var(--usr);outline-offset:1px}
+.msg{font-family:var(--f-mono);font-size:12.5px;color:var(--good);min-height:1.2em;margin-top:10px}
+.mailbtn{text-decoration:none;display:inline-block}
+footer{margin-top:28px;font-size:13px;color:var(--muted);max-width:80ch}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Tanári továbbképzés · kalandjáték · kb. 6 perc</div>
+      <h1>A <span>Pályatérkép</span> útja</h1>
+      <p style="margin:8px 0 0;font-family:var(--f-display);font-weight:500;font-size:clamp(16px,1.9vw,19px);color:var(--muted);text-wrap:balance">Pedagógiai innovációk a gyakorlatban – és pályaorientációs ötlet (2in1)</p>
+    </div>
+    <div class="ticks" id="ticks" aria-label="Haladás"></div>
+  </header>
+
+  <div class="stage">
+    <main class="story" id="story" aria-live="polite"></main>
+    <aside class="mapbox">
+      <div class="map">
+        <div class="eyebrow" style="margin-bottom:8px">Terjedési térkép · aktor–konténer modell</div>
+        <svg id="map" viewBox="0 0 420 320" role="img" aria-label="Egymásba ágyazott konténerek: osztály, munkaközösség, iskola, település, A megye, valamint a B megye egyik iskolája. A pontok az innovációt átvevő aktorokat jelölik."></svg>
+        <div class="legend">
+          <span><i style="background:var(--src)"></i>forrás (átadó)</span>
+          <span><i style="background:var(--usr)"></i>átvevő (felhasználó)</span>
+          <span><i class="dash"></i>külső kapcsolat</span>
+        </div>
+        <p class="note">A konténer elvont fogalom: aktorokat tartalmazó, jól lehatárolt egység. Ha a forrás és az átvevő ugyanabban van, belső a kapcsolat; ha a kapcsolat átlépi a forrást tartalmazó konténer határát, külső.</p>
+      </div>
+    </aside>
+  </div>
+
+  <footer>Szakmai alap: Pálvölgyi Lajos: <a href="https://mersz.hu/dokumentum/m1398aeemf__1/#m1398aeemf_1" target="_blank" rel="noopener" style="color:var(--usr)"><i>Az életpálya-építés megalapozása fiatalkorban. Az elmélettől a gyakorlatig</i></a>. Akadémiai Kiadó, 2026, 6.1–6.2 fejezet (Rogers, 1962; Fazekas et al., 2021; Pálvölgyi &amp; Horváth, 2023; Pálvölgyi &amp; Magócs, 2026 és az ott hivatkozott irodalom). A szereplők és az eset kitaláltak.</footer>
+</div>
+
+<script>
+const SCENES = [
+ { kicker:'1. döntés · Osztály', target:'osztaly', dim:0,
+   title:'Újítás ez egyáltalán?',
+   body:'A tanáriban egy kolléga megkérdezi: „Szép óra volt, de miért hívod innovációnak?” Anna úgy érzi, a Pályatérkép több egy jól sikerült osztályfőnöki óránál. Melyik érvvel válaszol?',
+   opts:[
+    {t:'„Mert olyan módszerrel és eszközökkel dolgozunk, amelyeket eddig nem használtunk osztályfőnöki órán: projektmunka, interjú, közös digitális térkép.”', p:1,
+     o:'A kolléga elfogadja, hogy ez valami új. Az érv azonban csak az újdonságot mutatja meg, azt nem, hogy miért jobb ez, mint ami eddig volt.'},
+    {t:'„Mert a megszokott gyakorlathoz képest jelentős eltérés, és egy valós problémán segít: a diákok alig ismerik a helyi munkahelyeket.”', p:2,
+     o:'A kolléga rákérdez, honnan tudja, hogy segít. Anna megmutatja a diákok előtte–utána válaszait. Az érv a változás mértékét és a hatását is megnevezte.'}],
+   lit:['Az Innova kutatás értelmezésében az innováció olyan változás egyének vagy szervezetek gyakorlatában, amely jelentős eltérés a korábbi rutintól, és növeli az eredményesség, hatékonyság vagy a problémamegoldás esélyét (Fazekas et al., 2021). Ez közel áll az Oslói Kézikönyv definíciójához (OECD, 2018). A definíció két feltétele közül az újdonság csak az egyik.',
+        'Ellis (2017) szerint az oktatásban más ágazatokhoz képest főleg a módszerek innovációja gyakori. A Pályatérkép is ilyen.'] },
+
+ { kicker:'2. döntés · Osztály', target:'osztaly', dim:1,
+   title:'Ötletből gyakorlat',
+   body:'Anna fejében egymást érik a folytatások: videóinterjú, pályanap, közös honlap. Közben a tanév rohan. Mivel tölti a következő két hét szabad idejét?',
+   opts:[
+    {t:'Leírja, mi kell a megvalósításhoz: időkeret, partnerlista, interjúkérdések, értékelési szempontok, és mi volt nehéz az első alkalommal.', p:2,
+     o:'Két oldal, amelyből más is el tud indulni. Anna ezzel az ötletgazdából megvalósítóvá vált.'},
+    {t:'Kidolgoz még két modult, hogy a program egy teljes tanévet lefedjen, és legyen mit felajánlani a kollégáknak.', p:1,
+     o:'A program gazdagabb lett, és Anna osztályában jól működik. Ha viszont holnap más akarná elindítani, Annát kellene megkérdeznie mindenről.'}],
+   lit:['Az új megoldások ötletgazdáit, megvalósítóit és terjesztőit a szakirodalom változás-ágensnek (change agent) nevezi. Viselkedésük az Innovatív munkahelyi viselkedés kérdéssorral vizsgálható (Messmann & Mulder, 2012).',
+        'Az erre épülő kutatás szerint az ötletek generálása (kreativitás) és implementálása (menedzselés) egyaránt meghatározó az innováció sikere szempontjából (Fazekas et al., 2021).'] },
+
+ { kicker:'3. döntés · Munkaközösség', target:'munk', dim:2,
+   title:'Az első határ: a munkaközösség',
+   body:'Az osztályfőnöki munkaközösség ülésén Anna tíz percet kap. Hogyan mutatja be a Pályatérképet?',
+   opts:[
+    {t:'Röviden bemutatja a teljes programot néhány diákmunkával, majd utána mindenkinek elküldi a kidolgozott anyagot.', p:1,
+     o:'A kollégák elismerően bólogatnak, egyikük később jelentkezik. A többiek szerint jó program, de most nincs rá idejük.'},
+    {t:'Felajánlja, hogy bárki kipróbálhat egyetlen 45 perces modult kész feladatlappal, és az első alkalommal ő is ott lesz.', p:2,
+     o:'Ketten azonnal jelentkeznek. Kicsi a tét, kicsi a befektetés, és kiderül, működik-e náluk.'}],
+   lit:['Az oktatási innovációk terjedését is segíti a kipróbálhatóság, a kompatibilitás, az egyszerűség és a költséghatékonyság (Dearing et al., 2015). A teljes program bemutatása meggyőző, de a kipróbálás küszöbét nem csökkenti.',
+        'A belső kapcsolathálózatokban horizontálisan könnyebb a terjedés. Az aktor–konténer modell szerint ez belső kapcsolat: a forrás (Anna) és az átvevők ugyanabban a konténerben vannak.'] },
+
+ { kicker:'4. döntés · Munkaközösség', target:'munk', dim:2,
+   title:'„Nálam ez így nem fér bele”',
+   body:'Péter, a kémiatanár kipróbálná, de szerinte a kilencedikeseinek túl hosszú a program, és nincs rá két órája. Mit válaszol Anna?',
+   opts:[
+    {t:'Leülnek, és együtt szabják át: egy óra, három interjú, térkép helyett tabló, és Péter a saját szempontjaival értékel.', p:2,
+     o:'Péter változata más, mint Annáé, és pont ezért működik nála. Jövőre már ő mutatja meg egy újabb kollégának.'},
+    {t:'Hazaviszi a kérést, és néhány nap alatt elkészít Péternek egy egyórás, kilencedikesekre szabott változatot.', p:1,
+     o:'Péter kipróbálja, és működik. A változat azonban Annáé maradt: ha Péternek jövőre más kell, megint Annához fordul.'}],
+   lit:['A támogató tényezőket mindig az adott kontextusban kell értékelni (Ellis, 2017): ami Anna osztályában kompatibilis, Péternél nem feltétlenül az.',
+        'Az oktatási innováció átvétele rendszerint nem mechanikus aktus, hanem összetett adaptációs folyamat, amelyben az innovációk keveredhetnek, módosulhatnak, sajátos összetételben jelenhetnek meg (Halász et al., 2021). Az adaptációt az átvevő végzi; ha a forrás végzi el helyette, a tanulás egy része elmarad.'] },
+
+ { kicker:'5. döntés · Iskola', target:'iskola', dim:3,
+   title:'Az igazgató ajánlata',
+   body:'Az igazgató hallott a sikerről. „Remek. A következő félévtől szeretném, ha minden tizedik évfolyamon bevezetnénk.” Anna mit felel?',
+   opts:[
+    {t:'Azt kéri, hogy az igazgató támogassa: adjon időt a megosztásra, ismerje el az önkéntes kipróbálókat, de ne tegye kötelezővé.', p:2,
+     o:'Az igazgató a következő értekezleten bemutatási lehetőséget ad Annának. Félév végére két újabb munkaközösség csatlakozik saját döntésből.'},
+    {t:'Elfogadja, de azt javasolja, hogy az első félév kísérleti legyen, közös értékeléssel a végén.', p:1,
+     o:'A program mindenhol elindul, és az értékelés hasznos. Néhány osztályfőnök azonban csak a kötelezettséget teljesíti, és náluk a Pályatérkép egy kitöltött feladatlap marad.'}],
+   lit:['Rogers (1962) diffúziófogalma a természettudományból ered: részecskék kényszer nélküli keveredése. Ez nála azt jelenti, hogy nem felülről indított reformról, hanem helyi innovációk spontán terjedéséről van szó. A bottom-up terjedés gyakran eredményesebb, mint a top-down (Fazekas et al., 2021).',
+        'Ez nem jelenti a vezetés kizárását: Cerna (2014) szerint az oktatásban sem kevesebb az innováció, mint a közszféra más területein, különösen ha kompetens vezetés támogatja.'] },
+
+ { kicker:'6. döntés · Település', target:'telep', dim:4,
+   title:'Az iskola falain túl',
+   body:'Két helyi cég visszaírt, hogy szívesen fogadna diákokat a jövőben is, egy szülő pedig felajánlja a segítségét. Mit kezd ezzel Anna?',
+   opts:[
+    {t:'Megállapodik a két céggel és a szülővel, hogy jövőre is számíthat rájuk, és partnerlistát vezet a következő évekre.', p:1,
+     o:'A következő évben gyorsan megvan minden interjúpartner. A kapcsolatok viszont Annán keresztül futnak: a partnerek nem ismerik egymást, és nem tudják, mi lett a diákok munkájából.'},
+    {t:'Évente közös estet szervez diákoknak, szülőknek és a munkahelyeknek: bemutatják a térképeket, és együtt toborozzák a következő évi partnereket.', p:2,
+     o:'A második esten már a szülők hoznak új munkahelyeket. A Pályatérképnek helyi közössége lett, amely Anna nélkül is tovább tudná vinni.'}],
+   lit:['Kozma (2018) szerint a fenntartható pedagógiai megújulás fontos feltétele az intézmény társadalmi beágyazottsága és a helyi szereplőkkel (civilek, szülők, munkahelyek) működő tanuló közösség. Egy partnerlista kapcsolatokat ad, tanuló közösséget még nem.',
+        'Baptista (2001) az innovációterjedés térbeli dimenziójában a szervezetek közötti kapcsolatok és a hálózatépítés fontosságát emeli ki.'] },
+
+ { kicker:'7. döntés · Megyehatár', target:'iskolaB', dim:4,
+   title:'Kérés a szomszéd megyéből',
+   body:'Egy konferencián meghallotta a programot egy szomszéd megyei technikum igazgatóhelyettese, és érdeklődik. Más iskolatípus, más diákok, száz kilométer. Hogyan válaszol Anna?',
+   opts:[
+    {t:'Összeállít egy rövid csomagot: egyoldalas útmutató, mintaóra-videó, a saját iskola tapasztalatai, és felajánl egy online konzultációt az első kipróbálás után.', p:2,
+     o:'A technikumban két osztály kezdi el, a konzultáción a szakmai gyakorlatukhoz igazítják az interjúkat. Az innováció átlépte a megyehatárt.'},
+    {t:'Elküldi a teljes, kipróbált anyagot a saját tapasztalataival együtt, és jelzi, hogy kérdés esetén szívesen segít.', p:1,
+     o:'Egy kolléga kipróbálja, de a gimnáziumi változatot a technikumi diákokhoz nem igazítják. Kérdés nem érkezik, mert senki nem tudja, mit kérdezzen.'}],
+   lit:['A spontán helyi innováció ritkán terjed el az iskolán belül, iskolák között még ritkábban (Dede, 2006). A közösségi határok átlépése lényegesen nehezebb, mint a belső terjedés; ebben a földrajzi és a kulturális távolság is szerepet játszik (Asheim & Gertler, 2009; Zhang et al., 2020).',
+        'A tanulmány következtetése: az innovációnak „diffúzióképes termékké” kell válnia, és az átvételt meggyőző promócióval és hatékony terméktámogatással célszerű aktívan segíteni. A felajánlott, de nem kezdeményezett segítség kevesebb ennél. Az ACM modellben ez külső kapcsolat: átlépi a forrást tartalmazó konténer határát.'] },
+
+ { kicker:'8. döntés · Forráskritika', target:null, dim:5,
+   title:'Egy blogbejegyzés tanulsága',
+   body:'Egy oktatási blog így foglalja össze Anna történetét: „Ha egy tanári ötlet jó, magától elterjed, ezért nem kell vele külön foglalkozni.” A tanulmány melyik állítása cáfolja ezt a legpontosabban?',
+   opts:[
+    {t:'Ahhoz, hogy egy innováció megfelelően terjedjen, diffúzióképes termékké kell válnia, és az átvételt promócióval és terméktámogatással aktívan célszerű segíteni.', p:1,
+     o:'Ez valóban ellentmond a blognak, de a szerzők ajánlása, nem bizonyíték. Egy cáfolatot erősebb alapra érdemes építeni.'},
+    {t:'A spontán helyi innováció ritkán terjed el az iskolán belül, iskolák között még ritkábban (Dede, 2006), és sokszor saját szervezetén belül is észrevétlen marad (Harris & Halkett, 2007).', p:2,
+     o:'Ez kutatási megállapítás, és pontosan a blog állításával szemben áll: a jó ötletek jelentős része nem terjed el magától.'}],
+   lit:['A blog Rogers „kényszernélküliségét” olvasta félre. Rogersnél a diffúzió azt jelenti, hogy a terjedés nem felülről elrendelt, nem azt, hogy nem kell érte tenni semmit.',
+        'Forráskritikai szempont: különítsük el az empirikus megállapítást (Dede; Harris & Halkett) és a belőle levont szerzői ajánlást (promóció, terméktámogatás). Az ajánlás a bizonyítékra épül, nem helyettesíti azt.'] }
+];
+
+const DIMS = [
+  {n:'Innovációfogalom', s:[0]},
+  {n:'Ötlet és megvalósítás', s:[1]},
+  {n:'Átvehetőség (kipróbálhatóság, kompatibilitás)', s:[2,3]},
+  {n:'Vezetés és alulról építkezés', s:[4]},
+  {n:'Beágyazottság és határátlépés', s:[5,6]},
+  {n:'Forráskritika', s:[7]}
+];
+
+const BOX = {
+  megyeA:{x:8,y:8,w:262,h:304,l:'„A” megye'},
+  telep:{x:22,y:34,w:236,h:264,l:'Település · helyi közösség'},
+  iskola:{x:36,y:60,w:178,h:210,l:'Iskola'},
+  munk:{x:50,y:86,w:120,h:160,l:'Munkaközösség'},
+  osztaly:{x:64,y:112,w:70,h:70,l:'Osztály'},
+  megyeB:{x:284,y:70,w:128,h:180,l:'„B” megye'},
+  iskolaB:{x:298,y:106,w:100,h:118,l:'Technikum'}
+};
+const SLOTS = {
+  munk:[[152,124],[152,166],[152,214],[96,218]],
+  iskola:[[192,112],[192,214]],
+  telep:[[236,122],[236,232]],
+  iskolaB:[[332,168],[368,192]]
+};
+const SRC = [99,150];
+const POP = {munk:4, iskola:2, telep:2, iskolaB:2};
+const POPLBL = {munk:'Munkaközösség (4 kolléga)', iskola:'Iskola többi munkaközössége (2)', telep:'Helyi közösség (2 partnercsoport)', iskolaB:'„B” megyei technikum (2 osztály)'};
+
+let st = {i:-1, picks:[], phase:'q', lastNew:0};
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const KEYS = ['A','B'];
+
+function adopters(){
+  const out = [];
+  st.picks.forEach((p,si)=>{
+    const sc = SCENES[si]; if(!sc.target || !SLOTS[sc.target]) return;
+    const pts = sc.opts[p].p;
+    for(let k=0;k<pts;k++) out.push({c:sc.target, si});
+  });
+  const used = {}; const res = [];
+  out.forEach(a=>{ used[a.c]=used[a.c]||0; const s=SLOTS[a.c][used[a.c]]; if(s){res.push({...a,x:s[0],y:s[1]}); used[a.c]++;} });
+  return res;
+}
+
+function drawMap(){
+  const cur = st.i>=0 && st.i<SCENES.length ? SCENES[st.i].target : null;
+  let s = '';
+  for(const [k,b] of Object.entries(BOX)){
+    const on = k===cur;
+    s += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="5" fill="${on?'var(--usr-soft)':'none'}" stroke="${on?'var(--usr)':'var(--line)'}" stroke-width="${on?2:1.2}"/>`;
+    s += `<text x="${b.x+6}" y="${b.y+13}" font-family="IBM Plex Mono, monospace" font-size="8" letter-spacing=".6" fill="${on?'var(--usr)':'var(--muted)'}">${esc(b.l.toUpperCase())}</text>`;
+  }
+  const ad = adopters();
+  ad.forEach(a=>{
+    const ext = a.c==='iskolaB';
+    s += `<line x1="${SRC[0]}" y1="${SRC[1]}" x2="${a.x}" y2="${a.y}" stroke="var(--src)" stroke-width="${ext?1.6:1}" stroke-opacity="${ext?.9:.5}" ${ext?'stroke-dasharray="4 3"':''}/>`;
+  });
+  const srcPts = st.picks.slice(0,2).reduce((t,p,si)=>t+SCENES[si].opts[p].p,0);
+  if(st.picks.length>0) s += `<circle cx="${SRC[0]}" cy="${SRC[1]}" r="${9+srcPts*2.5}" fill="var(--src-soft)" stroke="var(--src)" stroke-opacity=".5"/>`;
+  s += `<circle cx="${SRC[0]}" cy="${SRC[1]}" r="6.5" fill="var(--src)"/>`;
+  s += `<text x="${SRC[0]}" y="${SRC[1]+22}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" fill="var(--ink)">Anna</text>`;
+  ad.forEach((a,idx)=>{
+    const isNew = a.si===st.picks.length-1 && st.phase==='f';
+    s += `<circle class="${isNew?'newdot':''}" cx="${a.x}" cy="${a.y}" r="6" fill="var(--usr)" stroke="var(--surface)" stroke-width="1.5"/>`;
+  });
+  $('map').innerHTML = s;
+}
+
+function drawTicks(){
+  let h='';
+  SCENES.forEach((sc,k)=>{
+    let c='tick';
+    if(k<st.picks.length) c+=' done';
+    else if(k===st.i) c+=' now';
+    h+=`<span class="${c}" title="${k+1}. döntés"></span>`;
+  });
+  $('ticks').innerHTML=h;
+}
+
+function render(){
+  drawTicks(); drawMap();
+  const el = $('story');
+  if(st.i===-1){
+    el.innerHTML = `
+      <p class="kicker">Kiinduló helyzet</p>
+      <h2>Egy jó ötlet, egy osztályban</h2>
+      <p class="lead">Kovács Anna tizenöt éve tanít egy megyeszékhelyi gimnáziumban. Feltűnt neki, hogy tizedikesei alig ismerik a helyi munkahelyeket. Kitalálta a Pályatérképet: a diákok párban interjút készítenek egy helyi szakemberrel, és a beszélgetésekből közös térképet rajzolnak a város munka világáról.</p>
+      <p>Az első próba a saját osztályában jól sikerült. A kérdés az, eljut-e az ötlet bárki máshoz.</p>
+      <p style="border-left:4px solid var(--src);padding:4px 0 4px 14px;font-size:15.5px">A játék Pálvölgyi Lajos <a href="https://mersz.hu/dokumentum/m1398aeemf__1/#m1398aeemf_1" target="_blank" rel="noopener" style="color:var(--usr)"><i>Az életpálya-építés megalapozása fiatalkorban. Az elmélettől a gyakorlatig</i></a> (Akadémiai Kiadó, 2026) című tanulmányának bemutatása céljából készült. A helyzetgyakorlat egy tudományos kutatáson alapul: az oktatási innovációk terjedéséről szóló tanulmány eredményeit modellezi és szemlélteti egy elképzelt helyzeten keresztül. Minden válasz jó. A szimuláció célja a tanulmány eredményeinek rövid bemutatása és a problémafelvetés.</p>
+      <ul class="how">
+        <li>Ön dönt Anna helyett nyolc helyzetben, mindig két vállalható lépés között. Mindegyik döntés után a szakirodalom alapján kap visszajelzést.</li>
+        <li>A térkép az aktor–konténer modell (ACM) szerint mutatja, mely konténerekbe jut el az innováció, és hol lép át határt.</li>
+        <li>A válaszokat nem pontozzuk, a szimulációt - igény esetén - megbeszélés vagy reflexió követi.</li>
+      </ul>
+      <div class="row"><button class="btn" id="go">Indulás</button></div>`;
+    $('go').onclick=()=>{st.i=0;st.phase='q';render();focusStory();};
+    return;
+  }
+  if(st.i>=SCENES.length){ renderEnd(el); return; }
+  const sc = SCENES[st.i];
+  if(st.phase==='q'){
+    el.innerHTML = `
+      <p class="kicker">${sc.kicker}</p>
+      <h2>${sc.title}</h2>
+      <p class="lead">${esc(sc.body)}</p>
+      <div class="opts">${sc.opts.map((o,k)=>`<button class="opt" data-k="${k}"><span class="k">${KEYS[k]}</span><span>${esc(o.t)}</span></button>`).join('')}</div>`;
+    el.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+      st.picks[st.i]=+b.dataset.k; st.phase='f'; render(); focusStory();
+    });
+  } else {
+    const o = sc.opts[st.picks[st.i]];
+    const bestK = sc.opts.findIndex(x=>x.p===2);
+    el.innerHTML = `
+      <p class="kicker">${sc.kicker}</p>
+      <h2>${sc.title}</h2>
+      <div class="picked">${KEYS[st.picks[st.i]]}) ${esc(o.t)}</div>
+      <p class="lead">${esc(o.o)}</p>
+      <div class="lit"><div class="eyebrow">Mit mond a szakirodalom?</div>${sc.lit.map(x=>`<p>${esc(x)}</p>`).join('')}</div>
+      <p class="best">Másik lehetséges lépés: <b>${KEYS[1-st.picks[st.i]]})</b> ${esc(sc.opts[1-st.picks[st.i]].t)}</p>
+      <div class="row"><button class="btn" id="next">${st.i===SCENES.length-1?'Az út összegzése':'Tovább'}</button></div>`;
+    $('next').onclick=()=>{st.i++;st.phase='q';render();focusStory();};
+  }
+}
+
+function renderEnd(el){
+  const ad = adopters(); const cnt={}; ad.forEach(a=>cnt[a.c]=(cnt[a.c]||0)+1);
+  const reached = Object.keys(POP).filter(k=>cnt[k]);
+  const names = {munk:'a munkaközösségbe', iskola:'az iskola többi munkaközösségébe', telep:'a helyi közösségbe', iskolaB:'a szomszéd megyei technikumba'};
+  const list = reached.map(k=>names[k]);
+  const txt = list.length>1 ? list.slice(0,-1).join(', ')+' és '+list[list.length-1] : list[0];
+  el.innerHTML = `
+    <p class="kicker">Az út vége</p>
+    <h2>Anna útja</h2>
+    <p class="lead">A Pályatérkép az Ön döntései nyomán eljutott ${txt}. A térképen látszik, hol maradt belső a kapcsolat, és hol lépte át az innováció a forrást tartalmazó konténer határát.</p>
+
+    <h3>Felhasználósűrűség konténerenként</h3>
+    <p style="font-size:15px">A tanulmány a felhasználósűrűséget az adott területi egység felhasználói és válaszadói arányaként definiálja; egy konkrét innovációra ez a penetráció. A játékban ennek mintájára: átvevők / megszólított aktorok.</p>
+    <div class="tbl"><table>
+      <tr><th>Konténer</th><th>Átvevők</th><th>Sűrűség</th></tr>
+      ${Object.keys(POP).map(k=>{const n=cnt[k]||0;const d=n/POP[k];return `<tr><td>${POPLBL[k]}</td><td>${n} / ${POP[k]}</td><td>${d.toFixed(2).replace('.',',')}<div class="bar"><b style="width:${d*100}%"></b></div></td></tr>`}).join('')}
+    </table></div>
+
+    <h3>Megbeszélésre</h3>
+    <ol class="refl">
+      <li>Melyik saját újítása maradt „rejtett”? Az aktor–konténer modell nyelvén: melyik konténer határán akadt el, és mi hiányzott az átlépéshez?</li>
+      <li>A kipróbálhatóság, a kompatibilitás, az egyszerűség és a költséghatékonyság közül melyik a leggyengébb a saját innovációjában, és kinek a kontextusában?</li>
+      <li>Hol húzná meg a határt a vezetői támogatás és a felülről elrendelt bevezetés között a saját intézményében?</li>
+      <li>Melyik döntésnél gondolkodott másképp most, mint a játék elején? Mi változtatta meg?</li>
+      <li>Ha Péter átveszi Anna módszerét, látszik-e ez egy intézményi szintű kérdőívben? Amit mérni tudunk, az a határátlépés; ami a legtöbb iskolában valójában történik, az a határon belül marad. Mit veszítünk el abból, amit nem látunk?</li>
+    </ol>
+
+    <details>
+      <summary>Döntések áttekintése</summary>
+      <div class="rev">${SCENES.map((sc,k)=>{const p=st.picks[k];const b=sc.opts.findIndex(x=>x.p===2);return `<div><div class="t">${sc.kicker} · ${sc.title}</div>Az Ön választása: <b>${KEYS[p]})</b> ${esc(sc.opts[p].t)}<br>Másik lehetséges lépés: <b>${KEYS[1-p]})</b> ${esc(sc.opts[1-p].t)}</div>`}).join('')}</div>
+    </details>
+    <section class="send" aria-labelledby="sendh">
+      <h3 id="sendh" style="margin-top:0">Utolsó lépés</h3>
+      <p class="lead">Fakultatív - ha kedved van hozzá, küldd el nekem, kérlek a reflexiódat a felvetett problémákról. Jelszó: K+K :)</p>
+      <div class="field"><label for="refl-mail">E-mail-cím (a tréner adja meg a helyszínen)</label>
+        <input id="refl-mail" type="email" inputmode="email" autocomplete="off" placeholder="pl. nev@iskola.hu"></div>
+      <div class="field"><label for="refl-text">Reflexió</label>
+        <textarea id="refl-text" placeholder="Jelszó: K+K&#10;&#10;"></textarea></div>
+      <div class="row" style="margin-top:4px">
+        <button class="btn" id="copy">Szöveg másolása</button>
+        <a class="btn ghost mailbtn" id="mail" href="mailto:" target="_blank" rel="noopener">Megnyitás levelezőben</a>
+      </div>
+      <div class="msg" id="msg" role="status"></div>
+      <p style="font-size:14px;color:var(--muted);margin:10px 0 0">Ha a levelezőprogram nem nyílik meg, másold ki a szöveget, és küldd el a megadott címre a saját leveleződből.</p>
+    </section>
+    <div class="row"><button class="btn ghost" id="again">Új játék</button></div>`;
+  setupSend();
+  $('again').onclick=()=>{st={i:-1,picks:[],phase:'q'};render();focusStory();};
+}
+
+function setupSend(){
+  const ta=$('refl-text'), em=$('refl-mail'), mail=$('mail'), msg=$('msg');
+  try{ ta.value = localStorage.getItem('pt-refl') || 'Jelszó: K+K\n\n'; em.value = localStorage.getItem('pt-mail') || ''; }catch(e){ ta.value='Jelszó: K+K\n\n'; }
+  const upd=()=>{
+    try{ localStorage.setItem('pt-refl',ta.value); localStorage.setItem('pt-mail',em.value); }catch(e){}
+    mail.href = 'mailto:'+encodeURIComponent(em.value.trim())+'?subject='+encodeURIComponent('Reflexió – K+K')+'&body='+encodeURIComponent(ta.value);
+  };
+  ta.oninput=upd; em.oninput=upd; upd();
+  $('copy').onclick=()=>{
+    const done=()=>{msg.textContent='A szöveg a vágólapon van.';};
+    const fallback=()=>{ta.focus();ta.select();msg.textContent='Jelöld ki és másold a szöveget (Ctrl+C / Cmd+C).';};
+    try{ navigator.clipboard.writeText(ta.value).then(done,fallback); }catch(e){ fallback(); }
+  };
+}
+
+function focusStory(){
+  const h = $('story').querySelector('h2, .tier');
+  if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:true});}
+  const narrow = window.innerWidth<=820;
+  const target = narrow && st.phase==='f' ? document.querySelector('.mapbox') : $('story');
+  const top = $('story').getBoundingClientRect().top;
+  if(top<0 || narrow) target.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth', block:'start'});
+}
+render();
+</script>
+
+</body></html>
